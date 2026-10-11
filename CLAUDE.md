@@ -9,3 +9,4 @@
 
 -After each change, append an entry to `docs/claude-log.md` with:
   the date, my prompt (quoted), the files changed, and your line-by-line explanation.
+  
