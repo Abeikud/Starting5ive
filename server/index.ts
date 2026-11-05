@@ -62,7 +62,7 @@ function isDrafted(match: MatchState, playerId: string): boolean {
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(
   PORT,
-  { cors: { origin: 'http://localhost:5173' } },
+  { cors: { origin: /^http:\/\/[^/]+:5173$/ } },
 );
 
 function sendMatch(code: string, match: MatchState) {

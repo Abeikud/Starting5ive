@@ -53,8 +53,8 @@
 **Option B (considered, not applied)** — keep `Position` for real basketball positions only, and add a separate type for board slots:
 
 ```ts
-export type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
-export type LineupSlot = Position | '6Man';
+export type Position = "PG" | "SG" | "SF" | "PF" | "C";
+export type LineupSlot = Position | "6Man";
 export type Lineup = Record<LineupSlot, Player | null>;
 ```
 
@@ -135,12 +135,14 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 **Files changed:** `src/data/Player.ts` (user created the file with the import, the `PLAYER` array and the Curry entry; Claude added 15 entries and normalised spacing/formatting of the Curry entry — its data is unchanged)
 
 **Conventions used:**
+
 - `year` = the year the season **ended** (2016 = 2015–16 season), matching Basketball-Reference.
 - `id` = lowercase surname + `-` + year, e.g. `'westbrook-2017'`. Unique even when the same player has several seasons.
 - `team` = that season's team abbreviation (e.g. `'NOH'` for the 2008 New Orleans Hornets).
 - `positions` = main position(s) that season; dual-position players get two (Harden `['SG', 'PG']`, LeBron `['SF', 'PF']`, Duncan `['PF', 'C']`).
 
 **Players added (by position):**
+
 - PG: Westbrook 2017, Chris Paul 2008, Magic Johnson 1987 (plus existing Curry 2016)
 - SG: Harden 2019, Kobe Bryant 2006, Dwyane Wade 2009
 - SF: Durant 2014, LeBron James 2013, Kawhi Leonard 2016
@@ -148,6 +150,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 - C: Shaquille O'Neal 2000, Nikola Jokić 2022, Hakeem Olajuwon 1994
 
 **Explanation:** each entry is one object literal checked against the `Player` interface, with the same field-by-field meaning as the Curry entry (`id`, `name`, `team`, `year`, `positions`, `stats`). Two syntax details:
+
 - `name: "Shaquille O'Neal"` uses double quotes because the name contains an apostrophe; with single quotes the `'` would end the string early.
 - Every object ends with `},` — the comma separates array items. A comma after the last item (a trailing comma) is allowed and keeps diffs clean when adding players.
 
@@ -285,7 +288,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-06 — Click to draft into two lineups on the court
 
-**Prompt:** "lets get the lineup concept . make a lineup concepts in which when i click a player card from draft pool it refelcts. on each side "sicne theres going to be a court" make  5 one side plus  one extra on each side"
+**Prompt:** "lets get the lineup concept . make a lineup concepts in which when i click a player card from draft pool it refelcts. on each side "sicne theres going to be a court" make 5 one side plus one extra on each side"
 
 **Slot rule chosen (temporary, user hadn't picked slot-first vs player-first):** a clicked player goes into the first open slot matching one of their positions; if none, the 6th man slot; if that's full too, the click does nothing. Turns alternate after every successful pick.
 
@@ -358,7 +361,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-06 — Show the round winner when both lineups are full
 
-**Prompt:** "okay now when both lineups are full it doesnt do anything i want you to call the compare lineus  to be able to give us the winner"
+**Prompt:** "okay now when both lineups are full it doesnt do anything i want you to call the compare lineus to be able to give us the winner"
 
 **Files changed:** `src/match.ts`, `src/App.tsx`
 
@@ -393,7 +396,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-06 — Round win tracker, totals removed
 
-**Prompt:** "i need a round win checker also on the page after yoiu compare round and declare the winner of that round it should coach1: how many rounds theyve won    coahc2 h: how many rounds they won / i dobt need to see the torals the user doesnt need to see that"
+**Prompt:** "i need a round win checker also on the page after yoiu compare round and declare the winner of that round it should coach1: how many rounds theyve won coahc2 h: how many rounds they won / i dobt need to see the torals the user doesnt need to see that"
 
 **Decision noted:** players should not see lineup score totals — only who won.
 
@@ -447,13 +450,14 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-06 — Real data from Basketball-Reference (Kaggle) + random 8-per-position pool
 
-**Prompts:** "if the kaggle works better show me how to run that  and yes it should be random 8 players per posiiton  no filters yet" / "start from the seasons that recorded steals and blocks and the file is player-per-game.csv"
+**Prompts:** "if the kaggle works better show me how to run that and yes it should be random 8 players per posiiton no filters yet" / "start from the seasons that recorded steals and blocks and the file is player-per-game.csv"
 
 **Data source:** Kaggle "NBA Stats (1947-present)" by Sumitro Datta (Basketball-Reference data), file `Player Per Game.csv`, saved by the user as `Player-per-game.csv` in the project root.
 
 **What the CSV looked like (checked before writing the script):** no quoted fields (safe to split on commas); `season` is already the end year (2015–16 = `2016`); every NBA row from 1974 has all five stats; every player has exactly one position per season; traded players have a combined `2TM`/`3TM` row listed **first**, followed by one row per team (verified for all 2,471 cases); one row (Hayden Gray 2026, 1 game) has position `NA`.
 
 **Decisions:**
+
 - Seasons from **1974** (1973–74, first season with steals and blocks), NBA only (ABA/BAA rows dropped). No minutes/games filters.
 - `id` format changed from `curry-2016` to the Basketball-Reference id + year, e.g. `curryst01-2016`, because surnames collide across 22,000 seasons.
 - The one row with no position is skipped (it can't go in any slot).
@@ -479,11 +483,11 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
   - `if (row.lg !== 'NBA' || year < FIRST_SEASON) { continue; }` — skip ABA/BAA and pre-1974 rows. `continue` jumps to the next row.
   - `const id = \`${row.player_id}-${year}\`;` — unique id per player-season.
   - `const existing = playersById.get(id); if (existing !== undefined) { ... continue; }` — this player-season was already added (from the combined row), so this row is one of their per-team rows. Its stats are ignored (the combined row already has full-season averages); only the team name is used:
-    - `existing.team = existing.team.endsWith('TM') ? row.team : \`${existing.team}/${row.team}\`;` — the first team row replaces `"2TM"`; later ones are appended, giving e.g. `"PHO/WAS"`.
+    - `existing.team = existing.team.endsWith('TM') ? row.team : \`${existing.team}/${row.team}\`;`— the first team row replaces`"2TM"`; later ones are appended, giving e.g. `"PHO/WAS"`.
   - `const position = row.pos as Position;` / `if (!POSITIONS.includes(position)) { console.warn(...); continue; }` — skip rows whose position isn't one of the five (only `NA` in practice), and print which one so nothing is dropped silently. `as Position` tells TypeScript to treat the text as a `Position` so `includes` accepts it; the `includes` check is what actually makes it safe.
   - `playersById.set(id, { id, name: row.player, team: row.team, year, positions: [position], stats: { ppg: Number(row.pts_per_game), ... } });` — builds a `Player`. `id` and `year` use shorthand (`{ id }` = `{ id: id }`). The five stats come from the per-game columns (`trb` = total rebounds).
 - `const players = [...playersById.values()];` — the Map's values as an array.
-- `` const json = `[\n${players.map((player) => JSON.stringify(player)).join(',\n')}\n]\n`; `` — valid JSON with **one player per line**: compact like minified JSON, but still readable and diff-friendly.
+- ``const json = `[\n${players.map((player) => JSON.stringify(player)).join(',\n')}\n]\n`;`` — valid JSON with **one player per line**: compact like minified JSON, but still readable and diff-friendly.
 - `writeFileSync(OUTPUT_FILE, json);` / `console.log(...)` — save and report the count.
 
 **Explanation — `package.json`:**
@@ -580,7 +584,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-11 — Draft pool at half height, card styling
 
-**Prompt:** "I want to make the draft pool look better.  it should just take 50% of the vertical space on the. left and each player cad should be suy a porder for it top look like real cards. the cards shopuld have blue black backfround with white text"
+**Prompt:** "I want to make the draft pool look better. it should just take 50% of the vertical space on the. left and each player cad should be suy a porder for it top look like real cards. the cards shopuld have blue black backfround with white text"
 
 **Files changed:** `src/App.css`
 
@@ -801,7 +805,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-11 — Position filter on the draft pool
 
-**Prompt:** "add a filter    button to the rirght ofo draftpool. itt brings a list to  filter by postions and er. by pg sg sf pf c"
+**Prompt:** "add a filter button to the rirght ofo draftpool. itt brings a list to filter by postions and er. by pg sg sf pf c"
 
 **Clarified:** positions only ("er" was a typo, not era); one position at a time, plus "All".
 
@@ -809,7 +813,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 **Explanation — `DraftPool.tsx`:**
 
-- `import { useState } from "react";` — the pool now has its own state. First child component with state: the filter only changes what the pool *shows*, not the game, so `App` doesn't need to know about it.
+- `import { useState } from "react";` — the pool now has its own state. First child component with state: the filter only changes what the pool _shows_, not the game, so `App` doesn't need to know about it.
 - `import type { Player, Position }` — added `Position` for the filter type.
 - `type PositionFilter = 'All' | Exclude<Position, '6Man'>;` — the five real positions plus `'All'` (6th man is a slot, not a position).
 - `const FILTER_OPTIONS: PositionFilter[] = ['All', 'PG', 'SG', 'SF', 'PF', 'C'];` — menu items in order.
@@ -881,7 +885,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 
 ## 2026-10-11 — "or Play as Guest" under Log In
 
-**Prompt:** "underneat add  or " play as guest. button"
+**Prompt:** "underneat add or " play as guest. button"
 
 **Decision:** Play as Guest **works now** — it starts the game like Start Game (a guest needs no account). Log In still does nothing. Guest uses the quieter `secondary` style so Log In stays the main choice.
 
@@ -906,6 +910,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 **Goal:** separate code the future server will need from browser-only code. Pure reorganisation — the game behaves exactly the same.
 
 **Decisions:**
+
 - Kept `src/` as the browser folder instead of renaming it to `client/` (renaming would touch Vite config, tsconfigs and `index.html` for no benefit).
 - Kept **one** `package.json` (no workspaces/monorepo) — simpler while learning; can split later.
 - `src/data/` (players) stays for now; it moves server-side in roadmap step 4 when the server does the dealing.
@@ -929,6 +934,7 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 - `tsconfig.node.json`: `"include": ["vite.config.ts", "scripts", "shared"]` — Node rules check it too. Checking under both means browser-only APIs (like `document`) in shared code would be caught before they break the server.
 
 **Verified:**
+
 - `tsc -b`, `eslint .`, `vite build` pass.
 - Node ran `shared/match.ts` directly (no Vite, no extra tools): dealt 40, flipped the coin, drafted a full round with `draftPlayer`, scored it — what the server will do in step 2.
 - Headless Chrome: played a full round as before ("Coach 1 wins the round!", scoreboard 1–0), no console errors.
@@ -1093,7 +1099,33 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 **`src/data/Player.ts` deleted** — its only job was loading the JSON into the browser; nothing imports it now.
 
 **Verified:**
+
 - `tsc -b`, `eslint .`, `vite build` pass (bundle 268 KB / 84 KB gzipped, no size warning).
 - Server tests with fake clients: pool stats arrive as zeros; out-of-turn pick ignored; valid pick reaches both identically, turn switches, drafted player has real stats; re-picking a drafted player ignored; full round completes and is scored; Next Round deals a fresh pool, empties lineups, keeps score; a second Next Round click ignored.
 - Two headless Chrome tabs against the real server + Vite: A created a room (waiting screen with code), B joined by typing the code in lowercase; same pool in both; out-of-turn click changed nothing; a valid pick appeared in both tabs and the turn moved; a full round finished with the same winner and score in both; B's Next Round reset A's court; no console errors.
 - Investigated: the server logged one more connection than tabs when driven by headless Chrome. From inside a page, all socket requests carry a single session id, so the app opens one connection per tab; the extra one never joins a room and comes from outside the driven page (likely a headless-Chrome background load, not confirmed). To recheck in a normal browser during step 6.
+
+## 2026-10-15 — Play from another computer on the same network
+
+**Prompt:** "can you fix the src/socket.s so i can use another computer from the same internet as me"
+
+**Why three files, not one:** `socket.ts` alone isn't enough — the server's CORS rule and Vite's default (own computer only) would still block the other computer.
+
+**Files changed:** `src/socket.ts`, `server/index.ts`, `vite.config.ts`
+
+**Explanation — `src/socket.ts`:**
+
+- `const SERVER_PORT = 3001;` — named; matches the server's `PORT`.
+- ``const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:${SERVER_PORT}`;`` — was hard-coded `"http://localhost:3001"`, which on another computer means _that_ computer. Now built from the page's own address: `window.location.protocol` (`http:`; `https:` once online), `window.location.hostname` (computer part without the port — `localhost` for you, e.g. `192.168.2.240` for a friend), then `:3001`. Unchanged behaviour on your own machine.
+
+**Explanation — `server/index.ts`:**
+
+- `{ cors: { origin: /^http:\/\/[^/]+:5173$/ } }` — was exactly `'http://localhost:5173'`, which would refuse a page loaded via the network address. Now a regular expression: `^` start, `http:\/\/` literal `http://` (slashes escaped), `[^/]+` any computer name (no `/`), `:5173` Vite's port, `$` end. Allows any address on port 5173 (network address can change between Wi-Fi networks) but not unrelated websites. Development setting — becomes the real site address at deploy time (step 7).
+
+**Explanation — `vite.config.ts`:**
+
+- `server: { host: true },` — Vite by default only answers your own computer; this also listens on the network address. `npm run dev` now prints a `Network:` URL to share.
+
+**Verified:** `tsc -b` and `eslint .` pass. Vite printed `Network: http://192.168.2.240:5173/`. Two headless Chrome tabs loaded the game via `192.168.2.240` and played a full round (create/join by code, same pool, out-of-turn click ignored, picks synced, same winner, Next Round synced), no errors. A page opened at `http://192.168.2.240:5173` connected its socket to `http://192.168.2.240:3001` (not localhost) — what another computer will do. Not tested from a physical second computer.
+
+**Note:** macOS may ask to allow incoming connections for Node — click Allow.
