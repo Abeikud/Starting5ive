@@ -1,4 +1,8 @@
+import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { extname, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '../shared/events.ts';
 import {
@@ -10,7 +14,16 @@ import {
 } from '../shared/match.ts';
 import type { CoachId, MatchState, Player } from '../shared/types.ts';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT ?? 3001);
+const DIST_DIR = fileURLToPath(new URL('../dist/', import.meta.url));
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+};
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O: too easy to confuse with 1 and 0
 const CODE_LENGTH = 4;
 const HIDDEN_STATS = { ppg: 0, rpg: 0, apg: 0, spg: 0, bpg: 0 };
@@ -60,8 +73,33 @@ function isDrafted(match: MatchState, playerId: string): boolean {
   return drafted.some((player) => player?.id === playerId);
 }
 
+// Serves the built website from dist/. Unknown paths get index.html.
+async function serveWebsite(request: IncomingMessage, response: ServerResponse) {
+  const urlPath = decodeURIComponent((request.url ?? '/').split('?')[0]);
+  const filePath = normalize(DIST_DIR + (urlPath === '/' ? 'index.html' : urlPath));
+  if (!filePath.startsWith(DIST_DIR)) {
+    response.writeHead(403).end();
+    return;
+  }
+  try {
+    const file = await readFile(filePath);
+    response.writeHead(200, { 'Content-Type': CONTENT_TYPES[extname(filePath)] ?? 'application/octet-stream' });
+    response.end(file);
+  } catch {
+    try {
+      const index = await readFile(DIST_DIR + 'index.html');
+      response.writeHead(200, { 'Content-Type': CONTENT_TYPES['.html'] });
+      response.end(index);
+    } catch {
+      response.writeHead(404).end('Website not built yet. Run npm run build.');
+    }
+  }
+}
+
+const httpServer = createServer(serveWebsite);
+
 const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(
-  PORT,
+  httpServer,
   { cors: { origin: /^http:\/\/[^/]+:5173$/ } },
 );
 
@@ -157,4 +195,6 @@ io.on('connection', (socket) => {
   });
 });
 
-console.log(`Starting5ive server listening on port ${PORT} with ${PLAYERS.length} players`);
+httpServer.listen(PORT, () => {
+  console.log(`Starting5ive server listening on port ${PORT} with ${PLAYERS.length} players`);
+});

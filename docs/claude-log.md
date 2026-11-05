@@ -1129,3 +1129,50 @@ Why it was considered: `Position` is also used by `Player.positions`, so with Op
 **Verified:** `tsc -b` and `eslint .` pass. Vite printed `Network: http://192.168.2.240:5173/`. Two headless Chrome tabs loaded the game via `192.168.2.240` and played a full round (create/join by code, same pool, out-of-turn click ignored, picks synced, same winner, Next Round synced), no errors. A page opened at `http://192.168.2.240:5173` connected its socket to `http://192.168.2.240:3001` (not localhost) — what another computer will do. Not tested from a physical second computer.
 
 **Note:** macOS may ask to allow incoming connections for Node — click Allow.
+
+## 2026-11-04 — Project README
+
+**Prompt:** "create a file in the root foleder . make it a readme file or something explaining how the app functions so far go into detail using th e,log also to help some troubleshooting stuff what we changed make it into a docv file or read me file. how were able to run multiplayer now on same wifi and how wewould imnprove to internet"
+
+**Files changed:** `README.md` (replaced — it held only the default Vite template text, nothing project-specific)
+
+**What it covers:** quick start (two terminals), how to play, game rules, how the app works (server as source of truth, Socket.IO events table, screens, court), project structure, player data pipeline, same-Wi-Fi multiplayer (how to use it + the three changes that enabled it), taking it online (tunnel vs proper deployment, what would need changing), troubleshooting table (including the EADDRINUSE / "Failed running" issue), commands, roadmap status and known gaps, project history.
+
+**Why `README.md`:** GitHub and VS Code show it automatically as the project's front page; Markdown keeps it readable in the editor and in git diffs.
+
+## 2026-11-04 — Prepare for deployment (one server serves site + game)
+
+**Prompts:** "so far so good i want to host it on my website i own abeikud.com i want make a subdomain and host it how do i do that so its avialble to everyone" / "yes i just want to deploy now ill fix it later"
+
+**Plan:** host on Render (always-on Node + WebSockets), point a subdomain (default `starting5ive.abeikud.com`) at it with a CNAME. Steps 5/6 (turn UI, disconnects) deferred by the user.
+
+**Files changed:** `server/index.ts`, `src/socket.ts`, `package.json`
+
+**Explanation — `server/index.ts`:**
+
+- New imports: `readFile` (`node:fs/promises`, non-blocking file reads), `createServer` + `IncomingMessage`/`ServerResponse` types (`node:http`), `extname`/`normalize` (`node:path`), `fileURLToPath` (`node:url`).
+- `const PORT = Number(process.env.PORT ?? 3001);` — hosts pass the port as an environment variable; `??` falls back to 3001 locally; `Number` because env values are text.
+- `const DIST_DIR = fileURLToPath(new URL('../dist/', import.meta.url));` — absolute path of the built website.
+- `const CONTENT_TYPES` — extension → content type; browsers refuse to run `.js` without `text/javascript`.
+- `async function serveWebsite(request, response)` (commented):
+  - `urlPath` — requested path without `?query`, decoded (`%2F` → `/`).
+  - `filePath = normalize(DIST_DIR + ...)` — `/` maps to `index.html`; `normalize` resolves `..`.
+  - `if (!filePath.startsWith(DIST_DIR)) { 403 }` — security: blocks requests like `/../server/data/players.json` escaping `dist/`.
+  - Send the file with its content type; if it doesn't exist, send `index.html` (single-page-app fallback); if that's missing too, 404 "Website not built yet" (normal in development, where Vite serves the site).
+- `const httpServer = createServer(serveWebsite);` — our own web server.
+- `new Server<...>(httpServer, {...})` — Socket.IO attaches to it instead of creating its own: one port serves both. Socket.IO handles `/socket.io/...`, `serveWebsite` everything else. CORS unchanged (only matters in development; same-origin in production).
+- `httpServer.listen(PORT, () => { console.log(...) })` — start, and log once ready.
+
+**Explanation — `src/socket.ts`:**
+
+- `const DEV_SERVER_PORT = 3001;` — renamed from `SERVER_PORT` to make clear it's development-only.
+- `const SERVER_URL = import.meta.env.DEV ? ...:3001 : window.location.origin;` — `import.meta.env.DEV` is set by Vite (true under `npm run dev`, false in the build). Dev unchanged (incl. same-Wi-Fi play); deployed, connect to the page's own origin (e.g. `https://starting5ive.abeikud.com`), and `https` gives secure WebSockets automatically.
+
+**Explanation — `package.json`:**
+
+- `"start": "node server/index.ts"` — what the host runs; no `--watch` in production.
+- `"engines": { "node": ">=24" }` — Render picks its Node version from this; Node 24 is required to run `.ts` directly.
+
+**Verified:** `npm run build`, `eslint .` pass. Production run with `PORT=4000 node server/index.ts`: page/JS/CSS served with correct types, unknown paths → `index.html`, two `..` traversal attempts → 403, Socket.IO handshake on the same port, two headless Chrome tabs played a full round (same pool, same winner, matching lineups), no console errors. Server stopped by PID; no leftover processes.
+
+**Still to do (user, outside the code):** commit + push; create the Render Web Service; add the custom domain in Render; add the CNAME at the DNS provider for abeikud.com.
